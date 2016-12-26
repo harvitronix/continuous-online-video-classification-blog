@@ -43,4 +43,4 @@ def predict_on_image(image):
         print(predicted_label)
 
 if __name__ == '__main__':
-    predict_on_image('./images/2/2016-11-20 21:48:10.269907.jpg')
+    predict_on_image('./images/2/2016-11-20 21:34:09.180013.jpg')
