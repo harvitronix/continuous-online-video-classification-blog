@@ -53,6 +53,6 @@ def get_label(timestamp, commercials):
     return commercials['class']
 
 if __name__ == '__main__':
-    batches = ['2']
+    batches = ['1']
     for batch in batches:
         label_frames(batch, commercials[str(batch)], copyimage=False)
