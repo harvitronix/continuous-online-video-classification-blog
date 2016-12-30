@@ -26,16 +26,19 @@ def main(filename, frames, batch_size, num_classes, input_length):
     # Train the model.
     model = tflearn.DNN(net, tensorboard_verbose=0)
     model.fit(X_train, y_train, validation_set=(X_test, y_test),
-              show_metric=True, batch_size=batch_size, snapshot_step=100)
+              show_metric=True, batch_size=batch_size, snapshot_step=100,
+              n_epoch=4)
 
     # Save it.
-    model.save('rnn.tflearn')
+    model.save('checkpoints/rnn.tflearn')
 
 if __name__ == '__main__':
     filename = 'data/cnn-features-frames-1.pkl'
+    input_length = 2048
+    # filename = 'data/predicted-frames-1.pkl'
+    # input_length = 2
     frames = 40
     batch_size = 32
     num_classes = 2
-    input_length = 2048
 
     main(filename, frames, batch_size, num_classes, input_length)

@@ -1,2 +1,0 @@
-model_checkpoint_path: "rnn.tflearn"
-all_model_checkpoint_paths: "rnn.tflearn"

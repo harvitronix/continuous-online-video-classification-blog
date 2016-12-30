@@ -25,16 +25,18 @@ def main(filename, frames, batch_size, num_classes, input_length):
 
     # Get our model.
     model = tflearn.DNN(net, tensorboard_verbose=0)
-    model.load('rnn.tflearn')
+    model.load('checkpoints/rnn.tflearn')
 
     # Evaluate.
     print(model.evaluate(X_train, y_train))
 
 if __name__ == '__main__':
+    # filename = 'data/predicted-frames-1.pkl'
+    # input_length = 2
     filename = 'data/cnn-features-frames-2.pkl'
+    input_length = 2048
     frames = 40
     batch_size = 32
     num_classes = 2
-    input_length = 2048
 
     main(filename, frames, batch_size, num_classes, input_length)

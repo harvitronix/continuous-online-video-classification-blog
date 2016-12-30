@@ -3,14 +3,11 @@ Run a holdout set of data through our trained RNN. Requires we first
 run train_rnn.py and save the weights.
 """
 from collections import deque
-from rnn import get_network
 from sklearn.model_selection import train_test_split
 from tflearn.data_utils import to_categorical
-from random import shuffle
 import tflearn
 import numpy as np
 import pickle
-import sys
 
 def get_data(filename, num_frames, num_classes, input_length):
     """Get the data from our saved predictions or pooled features."""
