@@ -3,7 +3,7 @@
 This repo holds the code that supports our blog post about using TensorFlow, Inception and a Raspberry Pi for continuous online video classification.
 
 The blog post is here:
-TK
+https://medium.com/@harvitronix/continuous-online-video-classification-with-tensorflow-inception-and-a-raspberry-pi-785c8b1e13e1
 
 ## Overview
 
