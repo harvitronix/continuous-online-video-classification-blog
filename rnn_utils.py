@@ -63,5 +63,13 @@ def get_data(filename, num_frames, num_classes, input_length):
 
     return X_train, X_test, y_train, y_test
 
-def get_network():
+def get_network(frames, input_size, num_classes):
+    """Create our LSTM"""
+    net = tflearn.input_data(shape=[None, frames, input_size])
+    net = tflearn.lstm(net, 128, dropout=0.8, return_seq=True)
+    net = tflearn.lstm(net, 128)
+    net = tflearn.fully_connected(net, num_classes, activation='softmax')
+    net = tflearn.regression(net, optimizer='adam',
+                             loss='categorical_crossentropy', name="output1")
+    return net
 
