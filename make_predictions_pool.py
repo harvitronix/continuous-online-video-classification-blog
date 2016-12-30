@@ -61,7 +61,7 @@ def predict_on_frames(frames, batch):
         return cnn_features
 
 def main():
-    batches = ['2']
+    batches = ['1']
 
     for batch in batches:
         print("Doing batch %s" % batch)
