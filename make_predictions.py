@@ -1,5 +1,5 @@
 """
-Classify all the images in a holdout set and score.
+Classify all the images in a holdout set.
 """
 import pickle
 import sys
