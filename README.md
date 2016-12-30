@@ -1,9 +1,10 @@
 # Continuous online video classifcation
 
-This repo holds the code that supports our blog post about using TensorFlow, Inception and a Raspberry Pi for continuous online video classification.
+This repo holds the code that supports our blog posts about using TensorFlow, Inception and a Raspberry Pi for continuous online video classification.
 
-The blog post is here:
-https://medium.com/@harvitronix/continuous-online-video-classification-with-tensorflow-inception-and-a-raspberry-pi-785c8b1e13e1
+Part 1 - CNN, Inception only: https://medium.com/@harvitronix/continuous-online-video-classification-with-tensorflow-inception-and-a-raspberry-pi-785c8b1e13e1
+
+Part 2 - Adding an RNN (LSTM): https://medium.com/@harvitronix/continuous-video-classification-with-tensorflow-inception-and-recurrent-nets-250ba9ff6b85#.3vl3apzb6
 
 ## Overview
 
