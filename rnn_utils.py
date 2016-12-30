@@ -70,3 +70,22 @@ def get_network(frames, input_size, num_classes):
                              loss='categorical_crossentropy', name="output1")
     return net
 
+def get_network_deep(frames, input_size, num_classes):
+    """Create a deeper LSTM"""
+    net = tflearn.input_data(shape=[None, frames, input_size])
+    net = tflearn.lstm(net, 64, dropout=0.2, return_seq=True)
+    net = tflearn.lstm(net, 64, dropout=0.2, return_seq=True)
+    net = tflearn.lstm(net, 64, dropout=0.2)
+    net = tflearn.fully_connected(net, num_classes, activation='softmax')
+    net = tflearn.regression(net, optimizer='adam',
+                             loss='categorical_crossentropy', name="output1")
+    return net
+
+def get_network_wide(frames, input_size, num_classes):
+    """Create a wider LSTM"""
+    net = tflearn.input_data(shape=[None, frames, input_size])
+    net = tflearn.lstm(net, 256, dropout=0.2)
+    net = tflearn.fully_connected(net, num_classes, activation='softmax')
+    net = tflearn.regression(net, optimizer='adam',
+                             loss='categorical_crossentropy', name='output1')
+    return net
