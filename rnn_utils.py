@@ -89,3 +89,12 @@ def get_network_wide(frames, input_size, num_classes):
     net = tflearn.regression(net, optimizer='adam',
                              loss='categorical_crossentropy', name='output1')
     return net
+
+def get_network_wider(frames, input_size, num_classes):
+    """Create a wider LSTM"""
+    net = tflearn.input_data(shape=[None, frames, input_size])
+    net = tflearn.lstm(net, 512, dropout=0.2)
+    net = tflearn.fully_connected(net, num_classes, activation='softmax')
+    net = tflearn.regression(net, optimizer='adam',
+                             loss='categorical_crossentropy', name='output1')
+    return net

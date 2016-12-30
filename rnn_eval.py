@@ -2,7 +2,7 @@
 Run a holdout set of data through our trained RNN. Requires we first
 run train_rnn.py and save the weights.
 """
-from rnn_utils import get_network, get_data
+from rnn_utils import get_network, get_network_deep, get_network_wider, get_data
 import tflearn
 
 def main(filename, frames, batch_size, num_classes, input_length):
@@ -14,7 +14,7 @@ def main(filename, frames, batch_size, num_classes, input_length):
     num_classes = len(y_train[0])
 
     # Get our network.
-    net = get_network(frames, input_length, num_classes)
+    net = get_network_wider(frames, input_length, num_classes)
 
     # Get our model.
     model = tflearn.DNN(net, tensorboard_verbose=0)
