@@ -123,12 +123,12 @@ def get_image_data(image):
 
 def _frame_generator(batches, batch_size, num_frames):
     """Generate batches of frames to train on. Batch for memory."""
-    batch = batches[0]
-    labels = get_labels()
+    batch = batches[0]  # TEMP.
+    labels = get_labels()  # Call here to do it once.
     sequences, y_true = get_sequences(batches, num_frames, labels)
     
     while 1:
-        # Get a radom sample equal to our batch_size.
+        # Get a random sample equal to our batch_size.
         random_ints = random.sample(range(0, len(sequences) - 1), batch_size)
         samples = [sequences[x] for x in random_ints]
         ys = [y_true[x] for x in random_ints]
@@ -154,8 +154,10 @@ def main():
     model = get_model(input_shape)
     model.fit_generator(
         _frame_generator(batches, batch_size, num_frames),
-        samples_per_epoch=1000,
-        nb_epoch=10
+        samples_per_epoch=10000,
+        nb_epoch=100,
+        validation_data=_frame_generator(batches, batch_size, num_frames),
+        nb_val_samples=32
     )
 
 if __name__ == '__main__':
