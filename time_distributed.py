@@ -6,6 +6,7 @@ from keras.layers.wrappers import TimeDistributed
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.utils.np_utils import to_categorical
 from scipy.misc import imread
 from collections import deque
 import numpy as np
@@ -44,12 +45,17 @@ def get_model(input_shape):
         subsample=(1,2),
         border_mode='valid')))
     model.add(TimeDistributed(Flatten()))
-    model.add(LSTM(64, dropout_W=0.2, dropout_U=0.2, return_sequences=True))
-    model.add(LSTM(64, dropout_W=0.2, dropout_U=0.2, return_sequences=True))
-    model.add(LSTM(64, dropout_W=0.2, dropout_U=0.2))
+    model.add(LSTM(64, return_sequences=True))
+    model.add(LSTM(64, return_sequences=True))
+    model.add(LSTM(64))
     model.add(Dropout(0.2))
     model.add(Dense(
         output_dim=256,
+        init='he_normal',
+        activation='relu'))
+    model.add(Dropout(0.2))
+    model.add(Dense(
+        2,
         init='he_normal',
         activation='softmax'))
 
@@ -66,6 +72,8 @@ def get_labels():
 def _frame_generator(batch, batch_size, num_frames):
     """Generate batches of frames to train on. Batch for memory."""
     image_path = 'images/' + batch + '/'
+
+    labels = get_labels()
     
     with open('data/labeled-frames-' + batch + '.pkl', 'rb') as fin:
         frames = pickle.load(fin)
@@ -77,13 +85,17 @@ def _frame_generator(batch, batch_size, num_frames):
     batch_X = []
     batch_y = []
     for i, frame in enumerate(frames):
-        # Get y.
+        # Get one-hot encoded y.
         label = frame[1]
+        y = [int(x == label) for x in labels]
 
         # Get the image, which is a piece of X.
         filename = frame[0]
         image = image_path + filename + '.jpg'
         image_data = imread(image)
+
+        # Re-order the indices for TF.
+        image_data = image_data.transpose(2, 0, 1)
 
         # Add X to the dequeue and remove the old one, if we're full.
         X.append(image_data)
@@ -92,16 +104,14 @@ def _frame_generator(batch, batch_size, num_frames):
 
         # Add the data to our batch.
         batch_X.append(X)
-        batch_y.append(label)
+        batch_y.append(y)
             
         # If our batch is full, yield it.
         if i > 0 and i % (batch_size - 1) == 0:
-            # First numpy them, then reset our batch lists.
-            batch_X_np = np.array(batch_X)
-            batch_y_np = np.array(batch_y)
+            # Yield then reset for the next batch.
+            yield np.array(batch_X), np.array(batch_y)
             batch_X = []
             batch_y = []
-            yield batch_X_np, batch_y_np
 
 def main():
     batch = '1'
