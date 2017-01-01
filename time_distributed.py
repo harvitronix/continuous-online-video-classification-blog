@@ -1,6 +1,7 @@
 """
 Combining CNN and RNN into a CRNN, using Keras' TimeDistributed wrapper.
 """
+from keras.callbacks import TensorBoard
 from keras.layers.recurrent import LSTM
 from keras.layers.wrappers import TimeDistributed
 from keras.models import Sequential
@@ -46,19 +47,9 @@ def get_model(input_shape):
         subsample=(1,2),
         border_mode='valid')))
     model.add(TimeDistributed(Flatten()))
-    model.add(LSTM(64, return_sequences=True))
-    model.add(LSTM(64, return_sequences=True))
-    model.add(LSTM(64))
+    model.add(LSTM(256))
     model.add(Dropout(0.2))
-    model.add(Dense(
-        output_dim=256,
-        init='he_normal',
-        activation='relu'))
-    model.add(Dropout(0.2))
-    model.add(Dense(
-        2,
-        init='he_normal',
-        activation='softmax'))
+    model.add(Dense(2, activation='softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', 
                   metrics=['accuracy'])
@@ -116,9 +107,6 @@ def get_image_data(image):
     image_path = base_path + image + '.jpg'
     image_data = imread(image_path)
                 
-    # Re-order the indices for TF.
-    image_data = image_data.transpose(2, 0, 1)
-
     return image_data
 
 def _frame_generator(batches, batch_size, num_frames):
@@ -150,14 +138,16 @@ def main():
     batches = ['1']
     num_frames = 10
     batch_size = 32
-    input_shape = (num_frames, 3, 240, 320)
+    input_shape = (num_frames, 240, 320, 3)
+    tb = TensorBoard(log_dir='./logs')
     model = get_model(input_shape)
     model.fit_generator(
         _frame_generator(batches, batch_size, num_frames),
-        samples_per_epoch=10000,
+        samples_per_epoch=384,
         nb_epoch=100,
         validation_data=_frame_generator(batches, batch_size, num_frames),
-        nb_val_samples=32
+        nb_val_samples=100,
+        callbacks=[tb]
     )
 
 if __name__ == '__main__':
