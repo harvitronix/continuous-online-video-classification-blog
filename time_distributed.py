@@ -9,6 +9,7 @@ from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.utils.np_utils import to_categorical
 from scipy.misc import imread
 from collections import deque
+import random
 import numpy as np
 import sys
 import pickle
@@ -69,58 +70,90 @@ def get_labels():
         labels = [line.rstrip('\n') for line in fin]
     return labels
 
-def _frame_generator(batch, batch_size, num_frames):
-    """Generate batches of frames to train on. Batch for memory."""
-    image_path = 'images/' + batch + '/'
+def get_sequences(batches, num_frames, labels):
+    """
+    Create a list that just holds sequences of frames with their filenames.
+    This is so we can shuffle and train without losing the order
+    of frames within each batch. Should prevent over-fitting to a specific
+    batch, where all classes for that batch are the same.
 
-    labels = get_labels()
-    
+    So the result will be something like:
+    [[filename1, filename2, ...], [filename33, filename34, ...]]
+    """
+    batch = batches[0]  # TEMP.
+
     with open('data/labeled-frames-' + batch + '.pkl', 'rb') as fin:
         frames = pickle.load(fin)
+        X = []
+        y = []
+        image_queue = deque()
 
-    print(len(frames))
-    print('------------------------')
+        for i, frame in enumerate(frames):
+            image = frame[0]
+            label = frame[1]
 
-    X = deque()
-    batch_X = []
-    batch_y = []
-    for i, frame in enumerate(frames):
-        # Get one-hot encoded y.
-        label = frame[1]
-        y = [int(x == label) for x in labels]
+            # One-hot encode our label.
+            y_onehot = [int(x == label) for x in labels]
 
-        # Get the image, which is a piece of X.
-        filename = frame[0]
-        image = image_path + filename + '.jpg'
-        image_data = imread(image)
+            if len(image_queue) == num_frames - 1:
+                image_queue.append(image)
+                X.append(list(image_queue))
+                y.append(y_onehot)
+                image_queue.popleft()
+            else:
+                image_queue.append(image)
+                continue
 
-        # Re-order the indices for TF.
-        image_data = image_data.transpose(2, 0, 1)
+        return X, y
 
-        # Add X to the dequeue and remove the old one, if we're full.
-        X.append(image_data)
-        if len(X) == num_frames + 1:
-            X.popleft()
+def get_image_data(image):
+    """Given an image filename, return the numpy version of the image
+    in the correct shape.
+    """
+    base_path = 'images/1/'  # TEMP
 
-        # Add the data to our batch.
-        batch_X.append(X)
-        batch_y.append(y)
-            
-        # If our batch is full, yield it.
-        if i > 0 and i % (batch_size - 1) == 0:
-            # Yield then reset for the next batch.
-            yield np.array(batch_X), np.array(batch_y)
-            batch_X = []
-            batch_y = []
+    # Get the image data.
+    image_path = base_path + image + '.jpg'
+    image_data = imread(image_path)
+                
+    # Re-order the indices for TF.
+    image_data = image_data.transpose(2, 0, 1)
+
+    return image_data
+
+def _frame_generator(batches, batch_size, num_frames):
+    """Generate batches of frames to train on. Batch for memory."""
+    batch = batches[0]
+    labels = get_labels()
+    sequences, y_true = get_sequences(batches, num_frames, labels)
+    
+    while 1:
+        # Get a radom sample equal to our batch_size.
+        random_ints = random.sample(range(0, len(sequences) - 1), batch_size)
+        samples = [sequences[x] for x in random_ints]
+        ys = [y_true[x] for x in random_ints]
+
+        batch_X = []
+        batch_y = []
+
+        # Loop through each sample.
+        for i, sample in enumerate(samples):
+            sequence = [get_image_data(x) for x in sample]
+
+            batch_X.append(sequence)
+            batch_y.append(ys[i])
+
+        # Now yield it.
+        yield np.array(batch_X), np.array(batch_y)
 
 def main():
-    batch = '1'
+    batches = ['1']
     num_frames = 10
     batch_size = 32
     input_shape = (num_frames, 3, 240, 320)
     model = get_model(input_shape)
     model.fit_generator(
-        _frame_generator(batch, batch_size, num_frames),
+        _frame_generator(batches, batch_size, num_frames),
         samples_per_epoch=1000,
         nb_epoch=10
     )
