@@ -186,23 +186,27 @@ def train():
 
 def evaluate():
     print('*****Evaluating.*****')
-    batch = '2'
+    # Set defaults.
+    batches = ['1', '3', '5']
     num_frames = 10
     batch_size = 32
     input_shape = (num_frames, 240, 320, 3)
-    tb = TensorBoard(log_dir='./logs')
+
+    labels = get_labels()
+    X_val, y_val = get_sequences(['2'], num_frames, labels)
+
     model = get_model(input_shape)
-    model.load_weights('checkpoints/crnn.h5')
+    model.load_weights('checkpoints/crnn-take2.h5')
     score = model.evaluate_generator(
-        _frame_generator(batch, batch_size, num_frames),
+        _frame_generator(X_val, y_val, batch_size, num_frames),
         val_samples=batch_size*10
     )
     print(score)
     print(model.metrics_names)
 
 def main():
-    train()
-    #evaluate()
+    # train()
+    evaluate()
 
 if __name__ == '__main__':
     main()
