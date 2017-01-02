@@ -92,13 +92,14 @@ def get_sequences(batches, num_frames, labels):
             y_onehot = [int(x == label) for x in labels]
 
             # Append to queue, add queue to X, pop from queue.
+            image_path = base_path + image + '.jpg'
             if len(image_queue) == num_frames - 1:
-                image_queue.append(base_path + image + '.jpg')
+                image_queue.append(image_path)
                 X.append(list(image_queue))
                 y.append(y_onehot)
                 image_queue.popleft()
             else:
-                image_queue.append(image)
+                image_queue.append(image_path)
                 continue
 
         X_all += X
@@ -126,21 +127,27 @@ def _frame_generator(sequences, y_true, batch_size, num_frames):
         random_ints = random.sample(range(0, len(sequences) - 1), batch_size)
         samples = [sequences[x] for x in random_ints]
 
-        # In case one of the sequences has a None in it, just continue.
-        if None in samples:
-            continue
-
         ys = [y_true[x] for x in random_ints]
 
         batch_X = []
         batch_y = []
+        skip_batch = False
 
         # Loop through each sample.
         for i, sample in enumerate(samples):
             sequence = [get_image_data(x) for x in sample]
 
+            # Make sure we don't have nones in there.
+            if None in sequence:
+                skip_batch = True
+                break
+
             batch_X.append(sequence)
             batch_y.append(ys[i])
+
+        if skip_batch:
+            print("Skipping batch.")
+            continue
 
         # Now yield it.
         yield np.array(batch_X), np.array(batch_y)
@@ -161,6 +168,7 @@ def train():
 
     # Get the model.
     model = get_model(input_shape)
+    print(model.summary())
 
     # Load weights from previous runs.
     # model.load_weights('checkpoints/crnn.h5')
@@ -168,7 +176,7 @@ def train():
     # Fit on batches passed by our generator. Validate on another batch.
     model.fit_generator(
         _frame_generator(X_train, y_train, batch_size, num_frames),
-        samples_per_epoch=4000,
+        samples_per_epoch=int(len(X_train) / batch_size),
         nb_epoch=10,
         validation_data=_frame_generator(X_test, y_test, batch_size, num_frames),
         nb_val_samples=100,
