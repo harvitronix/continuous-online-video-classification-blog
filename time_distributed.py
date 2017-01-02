@@ -132,6 +132,7 @@ def _frame_generator(batch, batch_size, num_frames):
         yield np.array(batch_X), np.array(batch_y)
 
 def train():
+    print('*****Training.*****')
     batch = '1'
     num_frames = 10
     batch_size = 32
@@ -141,7 +142,7 @@ def train():
     model.fit_generator(
         _frame_generator(batch, batch_size, num_frames),
         samples_per_epoch=384,
-        nb_epoch=10,
+        nb_epoch=50,
         validation_data=_frame_generator(batch, batch_size, num_frames),
         nb_val_samples=100,
         callbacks=[tb]
@@ -149,6 +150,7 @@ def train():
     model.save('checkpoints/crnn.h5')
 
 def evaluate():
+    print('*****Evaluating.*****')
     batch = '2'
     num_frames = 10
     batch_size = 32
@@ -158,14 +160,13 @@ def evaluate():
     model.load_weights('checkpoints/crnn.h5')
     score = model.evaluate_generator(
         _frame_generator(batch, batch_size, num_frames),
-        val_samples=batch_size
+        val_samples=batch_size*10
     )
     print(score)
+    print(model.metrics_names)
 
 def main():
-    print('*****Training.*****')
     train()
-    print('*****Evaluating.*****')
     evaluate()
 
 if __name__ == '__main__':
