@@ -61,7 +61,7 @@ def get_labels():
         labels = [line.rstrip('\n') for line in fin]
     return labels
 
-def get_sequences(batches, num_frames, labels):
+def get_sequences(batch, num_frames, labels):
     """
     Create a list that just holds sequences of frames with their filenames.
     This is so we can shuffle and train without losing the order
@@ -71,8 +71,6 @@ def get_sequences(batches, num_frames, labels):
     So the result will be something like:
     [[filename1, filename2, ...], [filename33, filename34, ...]]
     """
-    batch = batches[0]  # TEMP.
-
     with open('data/labeled-frames-' + batch + '.pkl', 'rb') as fin:
         frames = pickle.load(fin)
         X = []
@@ -97,11 +95,11 @@ def get_sequences(batches, num_frames, labels):
 
         return X, y
 
-def get_image_data(image):
+def get_image_data(image, batch):
     """Given an image filename, return the numpy version of the image
     in the correct shape.
     """
-    base_path = 'images/1/'  # TEMP
+    base_path = 'images/' + batch + '/'
 
     # Get the image data.
     image_path = base_path + image + '.jpg'
@@ -109,11 +107,10 @@ def get_image_data(image):
                 
     return image_data
 
-def _frame_generator(batches, batch_size, num_frames):
+def _frame_generator(batch, batch_size, num_frames):
     """Generate batches of frames to train on. Batch for memory."""
-    batch = batches[0]  # TEMP.
     labels = get_labels()  # Call here to do it once.
-    sequences, y_true = get_sequences(batches, num_frames, labels)
+    sequences, y_true = get_sequences(batch, num_frames, labels)
     
     while 1:
         # Get a random sample equal to our batch_size.
@@ -126,7 +123,7 @@ def _frame_generator(batches, batch_size, num_frames):
 
         # Loop through each sample.
         for i, sample in enumerate(samples):
-            sequence = [get_image_data(x) for x in sample]
+            sequence = [get_image_data(x, batch) for x in sample]
 
             batch_X.append(sequence)
             batch_y.append(ys[i])
@@ -134,21 +131,42 @@ def _frame_generator(batches, batch_size, num_frames):
         # Now yield it.
         yield np.array(batch_X), np.array(batch_y)
 
-def main():
-    batches = ['1']
+def train():
+    batch = '1'
     num_frames = 10
     batch_size = 32
     input_shape = (num_frames, 240, 320, 3)
     tb = TensorBoard(log_dir='./logs')
     model = get_model(input_shape)
     model.fit_generator(
-        _frame_generator(batches, batch_size, num_frames),
+        _frame_generator(batch, batch_size, num_frames),
         samples_per_epoch=384,
-        nb_epoch=100,
-        validation_data=_frame_generator(batches, batch_size, num_frames),
+        nb_epoch=10,
+        validation_data=_frame_generator(batch, batch_size, num_frames),
         nb_val_samples=100,
         callbacks=[tb]
     )
+    model.save('checkpoints/crnn.h5')
+
+def evaluate():
+    batch = '2'
+    num_frames = 10
+    batch_size = 32
+    input_shape = (num_frames, 240, 320, 3)
+    tb = TensorBoard(log_dir='./logs')
+    model = get_model(input_shape)
+    model.load_weights('checkpoints/crnn.h5')
+    score = model.evaluate_generator(
+        _frame_generator(batch, batch_size, num_frames),
+        val_samples=batch_size
+    )
+    print(score)
+
+def main():
+    print('*****Training.*****')
+    train()
+    print('*****Evaluating.*****')
+    evaluate()
 
 if __name__ == '__main__':
     main()

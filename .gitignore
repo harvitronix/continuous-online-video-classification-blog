@@ -2,5 +2,6 @@ inception/*
 images/*
 __pycache__/*
 checkpoints/*
+logs/*
 .directory
 data/*
