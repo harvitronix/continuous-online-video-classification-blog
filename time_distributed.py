@@ -61,7 +61,7 @@ def get_labels():
         labels = [line.rstrip('\n') for line in fin]
     return labels
 
-def get_sequences(batch, num_frames, labels):
+def get_sequences(batches, num_frames, labels):
     """
     Create a list that just holds sequences of frames with their filenames.
     This is so we can shuffle and train without losing the order
@@ -71,10 +71,17 @@ def get_sequences(batch, num_frames, labels):
     So the result will be something like:
     [[filename1, filename2, ...], [filename33, filename34, ...]]
     """
-    with open('data/labeled-frames-' + batch + '.pkl', 'rb') as fin:
-        frames = pickle.load(fin)
+    X_all = []
+    y_all = []
+    for batch in batches:
+        base_path = 'images/' + batch + '/'
         X = []
         y = []
+
+        with open('data/labeled-frames-' + batch + '.pkl', 'rb') as fin:
+            frames = pickle.load(fin)
+
+        print("Loading batch %s with %d frames." % (batch, len(frames)))
         image_queue = deque()
 
         for i, frame in enumerate(frames):
@@ -84,8 +91,9 @@ def get_sequences(batch, num_frames, labels):
             # One-hot encode our label.
             y_onehot = [int(x == label) for x in labels]
 
+            # Append to queue, add queue to X, pop from queue.
             if len(image_queue) == num_frames - 1:
-                image_queue.append(image)
+                image_queue.append(base_path + image + '.jpg')
                 X.append(list(image_queue))
                 y.append(y_onehot)
                 image_queue.popleft()
@@ -93,29 +101,35 @@ def get_sequences(batch, num_frames, labels):
                 image_queue.append(image)
                 continue
 
-        return X, y
+        X_all += X
+        y_all += y
 
-def get_image_data(image, batch):
+    print("Return %d sequences." % len(X_all))
+    return X_all, y_all
+
+def get_image_data(image):
     """Given an image filename, return the numpy version of the image
     in the correct shape.
     """
-    base_path = 'images/' + batch + '/'
-
-    # Get the image data.
-    image_path = base_path + image + '.jpg'
-    image_data = imread(image_path)
+    try:
+        image_data = imread(image)
+    except OSError:
+        print("Couldn't find file %s" % image)
+        return None
                 
     return image_data
 
-def _frame_generator(batch, batch_size, num_frames):
+def _frame_generator(sequences, y_true, batch_size, num_frames):
     """Generate batches of frames to train on. Batch for memory."""
-    labels = get_labels()  # Call here to do it once.
-    sequences, y_true = get_sequences(batch, num_frames, labels)
-    
     while 1:
         # Get a random sample equal to our batch_size.
         random_ints = random.sample(range(0, len(sequences) - 1), batch_size)
         samples = [sequences[x] for x in random_ints]
+
+        # In case one of the sequences has a None in it, just continue.
+        if None in samples:
+            continue
+
         ys = [y_true[x] for x in random_ints]
 
         batch_X = []
@@ -123,7 +137,7 @@ def _frame_generator(batch, batch_size, num_frames):
 
         # Loop through each sample.
         for i, sample in enumerate(samples):
-            sequence = [get_image_data(x, batch) for x in sample]
+            sequence = [get_image_data(x) for x in sample]
 
             batch_X.append(sequence)
             batch_y.append(ys[i])
@@ -133,21 +147,34 @@ def _frame_generator(batch, batch_size, num_frames):
 
 def train():
     print('*****Training.*****')
-    batch = '1'
+    # Set defaults.
+    batches = ['1', '3', '5']
     num_frames = 10
     batch_size = 32
     input_shape = (num_frames, 240, 320, 3)
     tb = TensorBoard(log_dir='./logs')
+
+    # Get labels and sequences once.
+    labels = get_labels()
+    X_train, y_train = get_sequences(batches, num_frames, labels)
+    X_test, y_test = get_sequences(['2'], num_frames, labels)
+
+    # Get the model.
     model = get_model(input_shape)
+
+    # Load weights from previous runs.
+    # model.load_weights('checkpoints/crnn.h5')
+
+    # Fit on batches passed by our generator. Validate on another batch.
     model.fit_generator(
-        _frame_generator(batch, batch_size, num_frames),
-        samples_per_epoch=384,
-        nb_epoch=50,
-        validation_data=_frame_generator(batch, batch_size, num_frames),
+        _frame_generator(X_train, y_train, batch_size, num_frames),
+        samples_per_epoch=4000,
+        nb_epoch=10,
+        validation_data=_frame_generator(X_test, y_test, batch_size, num_frames),
         nb_val_samples=100,
         callbacks=[tb]
     )
-    model.save('checkpoints/crnn.h5')
+    model.save('checkpoints/crnn-take2.h5')
 
 def evaluate():
     print('*****Evaluating.*****')
@@ -167,7 +194,7 @@ def evaluate():
 
 def main():
     train()
-    evaluate()
+    #evaluate()
 
 if __name__ == '__main__':
     main()
