@@ -15,6 +15,8 @@ import numpy as np
 import sys
 import pickle
 
+np.random.seed(666)
+
 def get_model(input_shape):
     """Build the network.
     Starting version from:
@@ -47,7 +49,8 @@ def get_model(input_shape):
         subsample=(1,2),
         border_mode='valid')))
     model.add(TimeDistributed(Flatten()))
-    model.add(LSTM(256))
+    model.add(LSTM(512, dropout_W=0.2, dropout_U=0.2, return_sequences=True)) 
+    model.add(LSTM(256, dropout_W=0.2, dropout_U=0.2)) 
     model.add(Dropout(0.2))
     model.add(Dense(2, activation='softmax'))
 
@@ -152,10 +155,10 @@ def _frame_generator(sequences, y_true, batch_size, num_frames):
         # Now yield it.
         yield np.array(batch_X), np.array(batch_y)
 
-def train():
+def train(save_weights=True, load_weights=False):
     print('*****Training.*****')
     # Set defaults.
-    batches = ['1', '3', '5']
+    batches = ['1']
     num_frames = 10
     batch_size = 32
     input_shape = (num_frames, 240, 320, 3)
@@ -171,23 +174,25 @@ def train():
     print(model.summary())
 
     # Load weights from previous runs.
-    # model.load_weights('checkpoints/crnn.h5')
+    if load_weights:
+        model.load_weights('checkpoints/crnn.h5')
 
     # Fit on batches passed by our generator. Validate on another batch.
     model.fit_generator(
         _frame_generator(X_train, y_train, batch_size, num_frames),
         samples_per_epoch=int(len(X_train) / batch_size),
-        nb_epoch=10,
+        nb_epoch=50,
         validation_data=_frame_generator(X_test, y_test, batch_size, num_frames),
         nb_val_samples=100,
         callbacks=[tb]
     )
-    model.save('checkpoints/crnn-take2.h5')
+    if save_weights:
+        model.save('checkpoints/crnn.h5')
 
 def evaluate():
     print('*****Evaluating.*****')
     # Set defaults.
-    batches = ['1', '3', '5']
+    batches = ['2']
     num_frames = 10
     batch_size = 32
     input_shape = (num_frames, 240, 320, 3)
@@ -196,17 +201,17 @@ def evaluate():
     X_val, y_val = get_sequences(['2'], num_frames, labels)
 
     model = get_model(input_shape)
-    model.load_weights('checkpoints/crnn-take2.h5')
+    model.load_weights('checkpoints/crnn.h5')
     score = model.evaluate_generator(
         _frame_generator(X_val, y_val, batch_size, num_frames),
-        val_samples=batch_size*10
+        val_samples=100
     )
     print(score)
     print(model.metrics_names)
 
 def main():
-    # train()
-    evaluate()
+    train()
+    # evaluate()
 
 if __name__ == '__main__':
     main()
