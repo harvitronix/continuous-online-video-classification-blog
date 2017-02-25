@@ -1,6 +1,5 @@
 """
-Run a holdout set of data through our trained RNN. Requires we first
-run train_rnn.py and save the weights.
+Utilities used by our other RNN scripts.
 """
 from collections import deque
 from sklearn.model_selection import train_test_split
